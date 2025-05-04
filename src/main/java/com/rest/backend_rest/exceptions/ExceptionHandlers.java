@@ -21,4 +21,9 @@ public class ExceptionHandlers {
     public ResponseEntity<ErrorResponse> handleNotAuthenticatedException(NotAuthenticatedException ex) {
         return new ResponseEntity<>(new ErrorResponse(ex.getMessage()), HttpStatus.UNAUTHORIZED);
     }
+
+    @ExceptionHandler
+    public ResponseEntity<ErrorResponse> illegarArgument(IllegalArgument ex){
+        return new ResponseEntity<>(new ErrorResponse(ex.getMessage()),HttpStatus.CONFLICT);
+    }
 }

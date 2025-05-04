@@ -3,6 +3,7 @@ package com.rest.backend_rest.models;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity(name = "diary_entries")
@@ -17,7 +18,7 @@ public class DiaryEntry {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int id; // Unique ID for each diary entry
-    
+
     @ManyToOne
     @JoinColumn(name = "user_email", referencedColumnName = "email")
     private Users user; // Foreign key reference to Users table

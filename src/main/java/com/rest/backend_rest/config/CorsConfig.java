@@ -11,17 +11,17 @@ public class CorsConfig {
     @Bean
     public UrlBasedCorsConfigurationSource corsConfigurationSource() {
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        
+
         CorsConfiguration config = new CorsConfiguration();
-        config.addAllowedOrigin("http://localhost:3000,http://localhost:3001");
+        config.addAllowedOrigin("http://localhost:3000/");
         config.addAllowedMethod("GET");
         config.addAllowedMethod("POST");
         config.addAllowedMethod("PUT");
+        config.addAllowedMethod("PATCH");
         config.addAllowedMethod("DELETE");
         config.addAllowedHeader("Content-Type");
         config.addAllowedHeader("Authorization");
-        config.setAllowCredentials(true);
-        
+
         source.registerCorsConfiguration("/**", config);
         return source;
     }

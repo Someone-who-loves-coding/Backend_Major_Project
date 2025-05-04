@@ -1,0 +1,53 @@
+#services:
+#  db:
+#    image: mcr.microsoft.com/mssql/server:2022-latest
+#    container_name: sqlserver
+#    ports:
+#      - "1433:1433"
+#    environment:
+#      SA_PASSWORD: YourStrongPassword123!
+#      ACCEPT_EULA: "Y"
+#      MSSQL_PID: "Express"  # or "Developer", "Standard", etc.
+#    networks:
+#      - backend
+#  backend:
+#    build: .
+#    container_name: springboot_backend
+#    depends_on:
+#      db:
+#        condition: service_healthy
+#    ports:
+#      - "8080:8080"
+#    environment:
+#      SPRING_DATASOURCE_URL: jdbc:sqlserver://db:1433;databaseName=ClassifiedDB;encrypt=true;trustServerCertificate=true
+#      SPRING_DATASOURCE_USERNAME: sa
+#      SPRING_DATASOURCE_PASSWORD: Str0ng@Pass123
+#      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+#      JWT_SECRET: 17p+4AOa8EtpRN2SPryn0yJdU3lbWYOvgkqQVdJqkc0=
+#      JWT_EXPIRATION: 604800000
+#    restart: unless-stopped
+#    networks:
+#      - backend
+#
+#volumes:
+#  sql_data:
+#
+#networks:
+#  backend:
+
+services:
+  app:
+    build: .
+    container_name: app
+    ports:
+      - "8080:8080"
+    environment:
+      - driverClassName=org.sqlite.JDBC
+      - url=jdbc:sqlite:memory:myDb?cache=shared
+      - username=sa
+      - password=sa
+      - spring.jpa.database-platform=org.hibernate.community.dialect.SQLiteDialect
+      - hibernate.hbm2ddl.auto=create-drop
+      - hibernate.show_sql=true
+    volumes:
+      - ./data:/app

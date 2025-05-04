@@ -1,13 +1,13 @@
 package com.rest.backend_rest.services;
 
 import com.rest.backend_rest.exceptions.UserAlreadyExists;
-import com.rest.backend_rest.models.BlacklistedToken;
 import com.rest.backend_rest.models.Users;
 import com.rest.backend_rest.repositories.UserRepo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -22,16 +22,24 @@ public class UserServiceImpl implements IUserService {
 
     private final BCryptPasswordEncoder encoder = new BCryptPasswordEncoder(12);
 
+    private final MyUserDetailsService userDetailsService;
+
     @Autowired
-    public UserServiceImpl(UserRepo repo, JWTService jwtService, AuthenticationManager authManager) {
+    public UserServiceImpl(UserRepo repo, JWTService jwtService, AuthenticationManager authManager, MyUserDetailsService userDetailsService) {
         this.repo = repo;
         this.jwtService = jwtService;
         this.authManager = authManager;
+        this.userDetailsService = userDetailsService;
     }
 
     public void logout(String token) {
         // Blacklist the JWT token
         jwtService.blacklistToken(token);
+    }
+
+    public boolean validateToken(String token) {
+        UserDetails user = userDetailsService.loadUserByUsername(jwtService.extractUserName(token));
+        return jwtService.validateToken(token, user);
     }
 
     public Users register(Users user) {
@@ -57,4 +65,6 @@ public class UserServiceImpl implements IUserService {
             return null;
         }
     }
+    
+    
 }

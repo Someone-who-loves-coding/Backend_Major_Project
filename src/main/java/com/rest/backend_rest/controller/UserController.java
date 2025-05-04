@@ -13,11 +13,14 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/auth") // Good practice to prefix
-@CrossOrigin(origins = "*", allowedHeaders = "*")
 public class UserController {
 
+    private final UserServiceImpl service;
+
     @Autowired
-    private UserServiceImpl service;
+    public UserController(UserServiceImpl service) {
+        this.service = service;
+    }
 
     @PostMapping("/register")
     public ResponseEntity<?> register(@Valid @RequestBody Users user) {
@@ -58,4 +61,25 @@ public class UserController {
                     .body("Invalid token format. Must start with 'Bearer '.");
         }
     }
+
+    @GetMapping(value = "validatetoken")
+    public ResponseEntity<?> validateToken(@RequestHeader(value = "Authorization", required = false) String token) {
+        if (token == null || !token.startsWith("Bearer ")) {
+            Map<String, String> errorResponse = new HashMap<>();
+            errorResponse.put("message", "Authorization token is required and must start with 'Bearer '");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(errorResponse);
+        }
+        try {
+            String jwtToken = token.substring(7); // Remove "Bearer " prefix
+            boolean isValid = service.validateToken(jwtToken);
+            if (isValid) {
+                return ResponseEntity.ok("Token is valid");
+            } else {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Token is invalid or expired.");
+            }
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An unexpected error occurred.");
+        }
+    }
+
 }

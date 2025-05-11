@@ -9,11 +9,14 @@ import com.rest.backend_rest.repositories.UserRepo;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -26,8 +29,11 @@ public class DiaryEntryService {
 
     private final JWTService jwtTokenUtil;  // Inject JwtTokenUtil
 
+    private final EmotionAnalysisService emotionService;
+
     @Autowired
-    public DiaryEntryService(DiaryEntryRepository diaryEntryRepository, UserRepo usersRepository, JWTService jwtTokenUtil) {
+    public DiaryEntryService(EmotionAnalysisService emotionService, DiaryEntryRepository diaryEntryRepository, UserRepo usersRepository, JWTService jwtTokenUtil) {
+        this.emotionService = emotionService;
         this.diaryEntryRepository = diaryEntryRepository;
         this.usersRepository = usersRepository;
         this.jwtTokenUtil = jwtTokenUtil;
@@ -50,6 +56,11 @@ public class DiaryEntryService {
         diaryEntry.setHeading(heading);
         diaryEntry.setEntry(entry);
         diaryEntry.setTimeEntry(LocalDateTime.now()); // Automatically set the current time
+//        diaryEntry.setTimeEntry(time);
+
+        Map<String, Double> emotions = emotionService.analyze(entry);
+        diaryEntry.setEmotions(emotions);
+        log.info("Emotions: {}", diaryEntry.getEmotions());
         DiaryEntry savedEntry = diaryEntryRepository.save(diaryEntry);
 
         // Update the user's lastEntryTime
@@ -70,35 +81,33 @@ public class DiaryEntryService {
                 .collect(Collectors.toList());
     }
 
-    public List<DiaryEntryDTO> getEntryByDate(String token, String date) {
+    public List<DiaryEntry> getEntryByDate(String token, String date) {// DTO
         String userEmail = jwtTokenUtil.extractUserName(token);
         LocalDate targetDate = LocalDate.parse(date); // "yyyy-MM-dd"
 
         List<DiaryEntry> entry = diaryEntryRepository.findByUserEmail(userEmail);
-        List<DiaryEntryDTO> foundEntries = new ArrayList<>();
+        List<DiaryEntry> foundEntries = new ArrayList<>();  // DTO
         for(DiaryEntry e : entry) {
             if(e.getTimeEntry().toLocalDate().equals(targetDate))
-                foundEntries.add(new DiaryEntryDTO(e));
+                foundEntries.add(e); // DiaryEntryDTO
+            log.info("Found entry: {}", e.getEmotions());
         }
 
 
         return foundEntries;
     }
 
-    public void saveOrUpdate(String token, DiaryEntryDTO dto) {
+    public void saveOrUpdate(String token, String date) {
         String userEmail = jwtTokenUtil.extractUserName(token);
-        Users user = usersRepository.findByEmail(userEmail);
+        LocalDate targetDate = LocalDate.parse(date);
 
-        LocalDateTime targetDate = LocalDateTime.parse(dto.getDate());
-
-        DiaryEntry entry = diaryEntryRepository.findByUserEmailAndDate(userEmail, targetDate)
-                .orElse(new DiaryEntry());
-
-        entry.setUser(user);
-        entry.setHeading(dto.getHeading());
-        entry.setEntry(dto.getEntry());
-        entry.setTimeEntry(targetDate);
-
-        diaryEntryRepository.save(entry);
+        List<DiaryEntry> entries = diaryEntryRepository.findByUserEmail(userEmail);
+        for(DiaryEntry e : entries) {
+            if(e.getTimeEntry().toLocalDate().equals(targetDate)){
+                Map<String, Double> emotions = emotionService.analyze(e.getEntry());
+                e.setEmotions(emotions);
+                diaryEntryRepository.save(e);
+            }
+        }
     }
 }

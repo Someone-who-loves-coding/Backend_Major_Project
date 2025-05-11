@@ -1,5 +1,6 @@
 package com.rest.backend_rest.models;
 
+import lombok.Data;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -7,9 +8,10 @@ import org.springframework.security.core.userdetails.UserDetails;
 import java.util.Collection;
 import java.util.Collections;
 
+@Data
 public class UserPrincipal implements UserDetails {
 
-    private final Users user;
+    public final Users user;
 
     public UserPrincipal(Users user) {
         this.user = user;

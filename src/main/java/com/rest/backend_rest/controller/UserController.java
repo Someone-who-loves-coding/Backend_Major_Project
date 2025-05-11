@@ -62,7 +62,7 @@ public class UserController {
         }
     }
 
-    @GetMapping(value = "validatetoken")
+    @GetMapping(value = "/validatetoken")
     public ResponseEntity<?> validateToken(@RequestHeader(value = "Authorization", required = false) String token) {
         if (token == null || !token.startsWith("Bearer ")) {
             Map<String, String> errorResponse = new HashMap<>();

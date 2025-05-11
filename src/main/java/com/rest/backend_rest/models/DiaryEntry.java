@@ -5,6 +5,7 @@ import lombok.*;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Map;
 
 @Entity(name = "diary_entries")
 @Data
@@ -26,6 +27,14 @@ public class DiaryEntry {
     private String heading; // Optional heading
     private String entry; // Paragraph for diary entry
 
+//    @ElementCollection(fetch = FetchType.EAGER)
+//    private Map<String, Double> emotions;
+
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "diary_entry_emotions", joinColumns = @JoinColumn(name = "diary_entry_id"))
+    @MapKeyColumn(name = "emotion_type")
+    @Column(name = "emotion_value")
+    private Map<String, Double> emotions;
 
     private LocalDateTime timeEntry; // Time when the entry was created
 }

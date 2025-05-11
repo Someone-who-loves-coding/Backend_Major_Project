@@ -5,24 +5,31 @@ import com.rest.backend_rest.dtos.UserDTO;
 import com.rest.backend_rest.dtos.UserProfileDTO;
 import com.rest.backend_rest.models.DiaryEntry;
 import com.rest.backend_rest.models.DiaryEntryRequest;
+import com.rest.backend_rest.models.UserPrincipal;
 import com.rest.backend_rest.models.Users;
+import com.rest.backend_rest.repositories.DiaryEntryRepository;
 import com.rest.backend_rest.services.DiaryEntryService;
+import com.rest.backend_rest.services.JWTService;
 import com.rest.backend_rest.services.MyUserDetailsService;
+import com.rest.backend_rest.services.ReportAnalysisService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.annotation.*;
 
-import java.security.Principal;
 import java.util.List;
+import java.util.Map;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/v1")
 @Tag(name = "Users Service APIs", description = "Rest Service for users.")
@@ -32,9 +39,12 @@ public class DataController {
     private final MyUserDetailsService userService;
 
     @Autowired
-    public DataController(DiaryEntryService diaryEntryService, MyUserDetailsService userService) {
+    public DataController(DiaryEntryService diaryEntryService, MyUserDetailsService userService, DiaryEntryRepository repo, ReportAnalysisService reportAnalysisService, JWTService jw) {
         this.diaryEntryService = diaryEntryService;
         this.userService = userService;
+        this.repo = repo;
+        this.reportAnalysisService = reportAnalysisService;
+        this.jw = jw;
     }
 
     @GetMapping("/details")
@@ -174,10 +184,49 @@ public class DataController {
 
     @PostMapping("/entry")
     public ResponseEntity<?> saveOrUpdateEntry(
-            @RequestBody DiaryEntryDTO dto,
+            @RequestParam String date,
             @RequestHeader("Authorization") String token) {
         String jwtToken = token.startsWith("Bearer ") ? token.substring(7) : token;
-        diaryEntryService.saveOrUpdate(jwtToken, dto);
+        diaryEntryService.saveOrUpdate(jwtToken, date);
         return ResponseEntity.ok("Saved");
+    }
+
+    private final DiaryEntryRepository repo;
+    private final ReportAnalysisService reportAnalysisService;
+    private final JWTService jw;
+
+    @GetMapping("/final")
+    public ResponseEntity<?> generateFinalReport(@RequestHeader("Authorization") String token) {
+        // Extract email from token
+        String jwtToken = token.startsWith("Bearer ") ? token.substring(7) : token;  // Assuming "Bearer <token>"
+        log.info("email {}", jwtToken);
+        // Load the user using the email from the token
+        String username = jw.extractUserName(jwtToken);
+        UserDetails userDetails = userService.loadUserByUsername(username);
+        log.warn("User details: {}", userDetails.getUsername());
+
+        // Ensure the principal is of the correct type
+        if (!(userDetails instanceof UserPrincipal principal)) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("error", "Invalid user principal."));
+        }
+
+        // Get the Users entity from the principal
+        Users user = principal.getUser();  // Assuming `getUser()` returns the Users entity
+
+        // Retrieve diary entries for the user
+        List<DiaryEntry> entries = repo.findByUserOrderByTimeEntryAsc(user);
+
+        // Ensure the user has at least 30 entries
+        if (entries.size() < 30) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("error", "Final report requires at least 30 diary entries.","entries", entries.size()));
+        }
+
+        // Generate the final report
+        String report = reportAnalysisService.generateFinalReport(entries);
+
+        // Return the generated report
+        return ResponseEntity.ok(Map.of("report", report));
     }
 }

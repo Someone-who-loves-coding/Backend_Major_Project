@@ -1,6 +1,7 @@
 package com.rest.backend_rest.repositories;
 
 import com.rest.backend_rest.models.DiaryEntry;
+import com.rest.backend_rest.models.Users;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -11,7 +12,7 @@ import java.util.List;
 import java.util.Optional;
 
 @Repository
-public interface DiaryEntryRepository extends JpaRepository<DiaryEntry, Integer> {
+public interface DiaryEntryRepository extends JpaRepository<DiaryEntry, Long> {
     // You can add custom queries if needed
     // To Get all entries by user email
     @Query("SELECT d FROM diary_entries d WHERE d.user.email = :user_email")
@@ -20,5 +21,7 @@ public interface DiaryEntryRepository extends JpaRepository<DiaryEntry, Integer>
     // Get a specific entry by user and date (exact match on date only)
     @Query("SELECT d FROM diary_entries d WHERE d.user.email = :user_email AND FUNCTION('DATE', d.timeEntry) = :timeEntry")
     Optional<DiaryEntry> findByUserEmailAndDate(@Param("user_email") String email, @Param("timeEntry") LocalDateTime date);
+
+    List<DiaryEntry> findByUserOrderByTimeEntryAsc(Users user);
 
 }
